@@ -26,8 +26,8 @@ PFNGLCOMPILESHADERPROC glCompileShader;
 PFNGLATTACHSHADERPROC glAttachShader;
 PFNGLLINKPROGRAMPROC glLinkProgram;
 PFNGLUSEPROGRAMPROC glUseProgram;
-// PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-// PFNGLUNIFORM1FPROC glUniform1f;
+PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+PFNGLUNIFORM1FPROC glUniform1f;
 // PFNGLUNIFORM1IPROC glUniform1i;
 // PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
 // PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
@@ -120,8 +120,8 @@ int WINAPI demo(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, in
 	glAttachShader = (PFNGLATTACHSHADERPROC) wglGetProcAddress("glAttachShader");
 	glLinkProgram = (PFNGLLINKPROGRAMPROC) wglGetProcAddress("glLinkProgram");
 	glUseProgram = (PFNGLUSEPROGRAMPROC) wglGetProcAddress("glUseProgram");
-//     glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) wglGetProcAddress("glGetUniformLocation");
-//     glUniform1f = (PFNGLUNIFORM1FPROC) wglGetProcAddress("glUniform1f");
+    glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) wglGetProcAddress("glGetUniformLocation");
+    glUniform1f = (PFNGLUNIFORM1FPROC) wglGetProcAddress("glUniform1f");
 //     glUniform1i = (PFNGLUNIFORM1IPROC) wglGetProcAddress("glUniform1i");
 //     glGenFramebuffers = (PFNGLGENFRAMEBUFFERSPROC) wglGetProcAddress("glGenFramebuffers");
 //     glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC) wglGetProcAddress("glBindFramebuffer");
@@ -140,6 +140,8 @@ int WINAPI demo(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, in
     
     glUseProgram(gfx_program);
     
+    int progress_location = glGetUniformLocation(gfx_program, "iProgress");
+    
     while(1)
     {
         MSG msg = { 0 };
@@ -156,6 +158,8 @@ int WINAPI demo(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, in
         }
         
         glViewport(0,0,1920,1080);
+        
+        glUniform1f(progress_location, .5);
         
         glBegin(GL_QUADS);
         glVertex3f(-1,-1,0);
