@@ -15,9 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Windows.h"
+#include <windows.h>
+#include <commctrl.h>
 #include "GL/GL.h"
 #include "glext.h"
+
+#define sprintf wsprintfA
 
 PFNGLCREATESHADERPROC glCreateShader;
 PFNGLCREATEPROGRAMPROC glCreateProgram;
@@ -31,6 +34,9 @@ PFNGLUNIFORM1FPROC glUniform1f;
 // PFNGLUNIFORM1IPROC glUniform1i;
 // PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers;
 // PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer;
+
+const int bufferSizes[] = {64, 128, 256, 512, 1024},
+    nBufferSizes = 5;
 
 size_t strlen(const char *str)
 {
@@ -51,39 +57,44 @@ void *malloc(size_t size)
 	return GlobalAlloc(GMEM_ZEROINIT, size);
 }
 
+int generated = 0,
+    sfxBufferSize = 512;
+    
+HWND hwnd;
+
+LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+    int selectedIndex = 3;
+    
+	switch(uMsg)
+	{
+		case WM_COMMAND:
+			UINT id =  LOWORD(wParam);
+			HWND hSender = (HWND)lParam;
+
+			switch(id)
+			{
+                case 5: // SFX buffer size combo box
+                    selectedIndex = SendMessage(hSender, CB_GETCURSEL, 0, 0);
+                    sfxBufferSize = bufferSizes[selectedIndex];
+                    break;
+                case 6: // Generate button
+                    // Load SFX here.
+                    break;
+            }
+            break;
+            
+		case WM_CLOSE:
+			ExitProcess(0);
+			break;
+	}
+	return DefWindowProc(hwnd, uMsg, wParam, lParam);
+}
+
 int WINAPI demo(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
-    // Display demo window
-	CHAR WindowClass[]  = "T";
-
-	WNDCLASSEX wc = { 0 };
-	wc.cbSize = sizeof(wc);
-	wc.style = CS_OWNDC | CS_VREDRAW | CS_HREDRAW;
-	wc.lpfnWndProc = &DefWindowProc;
-	wc.cbClsExtra = 0;
-	wc.cbWndExtra = 0;
-	wc.hInstance = hInstance;
-	wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = NULL;
-	wc.lpszMenuName = NULL;
-	wc.lpszClassName = WindowClass;
-	wc.hIconSm = NULL;
-
-	RegisterClassEx(&wc);
-    
-    HWND hwnd = CreateWindowEx(0, WindowClass, "", WS_POPUP | WS_VISIBLE, 0, 0, 1920, 1080, NULL, NULL, hInstance, 0);
-    
-    DEVMODE dm = { 0 };
-    dm.dmSize = sizeof(dm);
-    dm.dmPelsWidth = 1920;
-    dm.dmPelsHeight = 1080;
-    dm.dmFields = DM_PELSWIDTH | DM_PELSHEIGHT;
-    
-    ChangeDisplaySettings(&dm, CDS_FULLSCREEN);
-    
-    ShowWindow(hwnd, TRUE);
-	UpdateWindow(hwnd);
+    // Initialize OpenGL 
+    hwnd = GetDesktopWindow();
     
     PIXELFORMATDESCRIPTOR pfd =
 	{
@@ -122,54 +133,54 @@ int WINAPI demo(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, in
 	glUseProgram = (PFNGLUSEPROGRAMPROC) wglGetProcAddress("glUseProgram");
     glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC) wglGetProcAddress("glGetUniformLocation");
     glUniform1f = (PFNGLUNIFORM1FPROC) wglGetProcAddress("glUniform1f");
-//     glUniform1i = (PFNGLUNIFORM1IPROC) wglGetProcAddress("glUniform1i");
-//     glGenFramebuffers = (PFNGLGENFRAMEBUFFERSPROC) wglGetProcAddress("glGenFramebuffers");
-//     glBindFramebuffer = (PFNGLBINDFRAMEBUFFERPROC) wglGetProcAddress("glBindFramebuffer");
     
-    ShowCursor(FALSE);
-
-#include "gfx.h"
-    int gfx_size = strlen(gfx_source),
-        gfx_handle = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(gfx_handle, 1, (GLchar **)&gfx_source, &gfx_size);
-    glCompileShader(gfx_handle);
+    // ### Show selector
+    WNDCLASS wca = { 0 };
+	
+    wca.lpfnWndProc   = DialogProc;
+	wca.hInstance     = hInstance;
+	wca.lpszClassName = L"Settings";
+	RegisterClass(&wca);
     
-    int gfx_program = glCreateProgram();
-    glAttachShader(gfx_program, gfx_handle);
-    glLinkProgram(gfx_program);
+	HWND lwnd = CreateWindowEx(0, L"Settings", "Neon Bubblebath", WS_OVERLAPPEDWINDOW, 200, 200, 341, 150, NULL, NULL, hInstance, NULL);
     
-    glUseProgram(gfx_program);
+    // Add "SFX Buffer size: " text
+	HWND hSFXBufferSizeText = CreateWindow(WC_STATIC, "SFX buffer size: ", WS_VISIBLE | WS_CHILD | SS_LEFT, 10,13,150,100, lwnd, NULL, hInstance, NULL);
     
-    int progress_location = glGetUniformLocation(gfx_program, "iProgress");
-    
-    while(1)
+    // Add SFX Buffer size combo box
+    HWND hSFXBufferSizeComboBox = CreateWindow(WC_COMBOBOX, TEXT(""), CBS_DROPDOWN | CBS_HASSTRINGS | WS_CHILD | WS_OVERLAPPED | WS_VISIBLE, 120, 10, 195, nBufferSizes*25, lwnd, (HMENU)5, hInstance,
+	 NULL);
+    for(int i=0; i<nBufferSizes; ++i)
     {
-        MSG msg = { 0 };
-        while ( PeekMessageA( &msg, NULL, 0, 0, PM_REMOVE ) )
-        {
-            if ( msg.message == WM_QUIT || (msg.message = WM_KEYDOWN && msg.wParam == VK_ESCAPE ) )
-            {
-                ExitProcess(0);
-                return 0;
-            }
-            
-            TranslateMessage( &msg );
-            DispatchMessageA( &msg );
-        }
-        
-        glViewport(0,0,1920,1080);
-        
-        glUniform1f(progress_location, .5);
-        
-        glBegin(GL_QUADS);
-        glVertex3f(-1,-1,0);
-        glVertex3f(-1,1,0);
-        glVertex3f(1,1,0);
-        glVertex3f(1,-1,0);
-        glEnd();
-        
-        SwapBuffers(hdc);
+        char name[1024];
+        sprintf(name, "%d pixels", bufferSizes[i]);
+        SendMessage(hSFXBufferSizeComboBox, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) name);
     }
+    SendMessage(hSFXBufferSizeComboBox, CB_SETCURSEL, 3, 0);
+    
+    // Add Load button
+    HWND generateButton = CreateWindow(WC_BUTTON,"Generate",WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,10,35,100,25,lwnd,(HMENU)6,hInstance,NULL);
+    
+    // Add precalc loading bar
+    HWND hPrecalcLoadingBar = CreateWindowEx(0, PROGRESS_CLASS, (LPTSTR) NULL, WS_CHILD | WS_VISIBLE, 120, 36, 196, 25, lwnd, (HMENU) 7, hInstance, NULL);
+    
+    // Add a player trackbar
+    HWND hTrackbar = CreateWindowEx(0,TRACKBAR_CLASS,"Music Trackbar",WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_ENABLESELRANGE, 111, 63, 213, 40, lwnd, (HMENU) 8, hInstance,NULL); 
+    EnableWindow(hTrackbar, generated);
+    
+    // Add Play button
+    HWND hPlayPauseButton = CreateWindow(WC_BUTTON,"Play",WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,10,65,100,25,lwnd,(HMENU)6,hInstance,NULL);
+    EnableWindow(hPlayPauseButton, generated);
+    
+    ShowWindow(lwnd, TRUE);
+	UpdateWindow(lwnd);
+
+	MSG msg = { 0 };
+	while(GetMessage(&msg, NULL, 0, 0) > 0)
+	{
+		TranslateMessage(&msg);
+		DispatchMessage(&msg);
+	}
     
     return 0;
 }
