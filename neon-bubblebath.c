@@ -58,9 +58,20 @@ void *malloc(size_t size)
 }
 
 int generated = 0,
-    sfxBufferSize = 512;
+    texs = 512,
+    block_size = 512 * 512,
+    nblocks1,
+    sequence_texture_handle,
+    snd_framebuffer,
+    snd_texture,
+    sample_rate = 48000,
+    music1_size;
+float duration1 = 180.,
+    *smusic1;
     
 HWND hwnd;
+
+#include "sfx.h"
 
 LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
@@ -76,10 +87,70 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 			{
                 case 5: // SFX buffer size combo box
                     selectedIndex = SendMessage(hSender, CB_GETCURSEL, 0, 0);
-                    sfxBufferSize = bufferSizes[selectedIndex];
+                    texs = bufferSizes[selectedIndex];
+                    block_size = texs * texs;
                     break;
                 case 6: // Generate button
                     // Load SFX here.
+//                     printf("sequence texture width is: %d\n", sequence_texture_size); // TODO: remove
+                    glGenTextures(1, &sequence_texture_handle);
+                    glBindTexture(GL_TEXTURE_2D, sequence_texture_handle);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, sequence_texture_size, sequence_texture_size, 0, GL_RGBA, GL_UNSIGNED_BYTE, sequence_texture);
+
+                    glGenFramebuffers(1, &snd_framebuffer);
+                    glBindFramebuffer(GL_FRAMEBUFFER, snd_framebuffer);
+                    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+                    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+
+                    unsigned int snd_texture;
+                    glGenTextures(1, &snd_texture);
+                    glBindTexture(GL_TEXTURE_2D, snd_texture);
+                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texs, texs, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+                    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, snd_texture, 0);
+
+                    // Music allocs
+                    nblocks1 = sample_rate * duration1 / block_size + 1;
+                    music1_size = nblocks1 * block_size;
+                    smusic1 = (float*)malloc(4 * music1_size);
+                    short *dest = (short*)smusic1;
+                    for (int i = 0; i < 2 * music1_size; ++i)
+                        dest[i] = 0;
+
+                    // Load music shader
+                    int sfx_size = strlen(sfx_frag);
+                    sfx_handle = glCreateShader(GL_FRAGMENT_SHADER);
+                    sfx_program = glCreateProgram();
+                    glShaderSource(sfx_handle, 1, (GLchar **)&sfx_frag, &sfx_size);
+                    glCompileShader(sfx_handle);
+//                     printf("---> SFX shader:\n");
+//                 #ifdef DEBUG
+//                     debug(sfx_handle);
+//                 #endif
+                    glAttachShader(sfx_program, sfx_handle);
+                    glLinkProgram(sfx_program);
+//                     printf("---> SFX program:\n");
+//                 #ifdef DEBUG
+//                     debugp(sfx_program);
+//                 #endif
+                    glUseProgram(sfx_program);
+                    sfx_samplerate_location = glGetUniformLocation(sfx_program, SFX_VAR_ISAMPLERATE);
+                    sfx_blockoffset_location = glGetUniformLocation(sfx_program, SFX_VAR_IBLOCKOFFSET);
+                    sfx_volumelocation = glGetUniformLocation(sfx_program, SFX_VAR_IVOLUME);
+                    sfx_texs_location = glGetUniformLocation(sfx_program, SFX_VAR_ITEXSIZE);
+                    sfx_sequence_texture_location = glGetUniformLocation(sfx_program, SFX_VAR_ISEQUENCE);
+                    sfx_sequence_width_location = glGetUniformLocation(sfx_program, SFX_VAR_ISEQUENCEWIDTH);
+//                     printf("++++ SFX shader created.\n");
+
+//                     glBindFramebuffer(GL_FRAMEBUFFER, 0);
                     break;
             }
             break;

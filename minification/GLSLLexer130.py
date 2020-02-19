@@ -68,6 +68,7 @@ class GLSLLexer130:
         self.rules += [ Rule.Rule("/", "DIVBY") ]
         self.rules += [ Rule.Rule("\+", "PLUS") ]
         self.rules += [ Rule.Rule("-", "MINUS") ]
+        self.rules += [ Rule.Rule("%", "MODULO") ]
         self.rules += [ Rule.Rule("\(", "LPAREN") ]
         self.rules += [ Rule.Rule("\)", "RPAREN") ]
         self.rules += [ Rule.Rule("\[", "LBRACKET") ]
