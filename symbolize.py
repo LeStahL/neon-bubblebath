@@ -43,7 +43,7 @@ input_source = "const char " + fragname + "_source[] = {"
 with open(file, "rt") as f:
     input_source_ = f.read();
     f.close()
-input_source_ = Compressor.compress(input_source_).replace('\"','\\\"').replace('\n', '\\n\"\n\"').replace('#version 130', '#version 130\\n') + "\\0"
+input_source_ = Compressor.compress(input_source_).replace('\"','\\\"').replace('#version 130', '#version 130\n') + "\0"
 for char in input_source_[:-1]:
     input_source += str(ord(char)) + ', '
 input_source += str(ord(input_source_[-1])) + "};"

@@ -25,7 +25,7 @@ float BPS, SPB, BT;
 
 float Tsample;
 
-#define filterthreshold 1.e-3 #CRLF
+#define filterthreshold 1.e-3
 
 //TEXCODE
 
@@ -239,11 +239,11 @@ float rfloat(int off)
     return mix(1., -1., sign) * (1. + significand * 9.765625e-4) * pow(2.,exponent-15.);
 }
 
-#define NTRK 10 #CRLF
-#define NMOD 201 #CRLF
-#define NPTN 16 #CRLF
-#define NNOT 280 #CRLF
-#define NDRM 48 #CRLF
+#define NTRK 10
+#define NMOD 201
+#define NPTN 16
+#define NNOT 280
+#define NDRM 48
 
 int trk_sep(int index)      {return int(rfloat(index));}
 int trk_syn(int index)      {return int(rfloat(index+1+1*NTRK));}
