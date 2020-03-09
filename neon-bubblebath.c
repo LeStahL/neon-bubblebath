@@ -15,13 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <stdio.h> // FIXME: remove!
+// #define DEBUG
+
+#include <stdio.h> 
+#include <stdint.h>
 #include <windows.h>
 #include <commctrl.h>
 #include "GL/GL.h"
 #include "glext.h"
 
-// #define DEBUG
 
 PFNGLCREATESHADERPROC glCreateShader;
 PFNGLCREATEPROGRAMPROC glCreateProgram;
@@ -279,15 +281,44 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     
                     glBindFramebuffer(GL_FRAMEBUFFER, 0);
                     
+                    int n_bits_per_sample = 16;
+                    
                     FILE *f = fopen("music.raw", "wb");
                     fwrite(smusic1, sizeof(short), 2*nblocks1*block_size, f);
+                    fclose(f);
+                    
+                    f = fopen("music.wav", "wb");
+                    fwrite("RIFF", 1, 4, f);
+                    int data = 44 + 2*nblocks1*block_size;
+                    fwrite(&data, sizeof(int32_t), 1, f); // file size
+//                     // WAV info section
+                    fwrite("WAVEfmt ", 1, 8, f); // This stuff needs to be present
+                    data = 16;
+                    fwrite(&data, sizeof(int32_t), 1, f); // Remaining chunk with info is 16 bytes
+                    data = 0x0001;
+                    fwrite(&data, sizeof(int16_t), 1, f); // PCM format identifier
+                    data = 2;
+                    fwrite(&data, sizeof(int16_t), 1, f); // number of channels
+                    data = sample_rate;
+                    fwrite(&data, sizeof(int32_t), 1, f); // sample rate
+                    data = sample_rate*n_bits_per_sample*channels/8;
+                    fwrite(&data, sizeof(int32_t), 1, f); // bytes per second
+                    data = channels*(n_bits_per_sample+7)/8;
+                    fwrite(&data, sizeof(int16_t), 1, f); // frame size
+                    data = n_bits_per_sample;
+                    fwrite(&data, sizeof(int16_t), 1, f); // bits per sample
+                    // Data section
+                    fwrite("data", 1, 4, f);
+                    data = 2*nblocks1*block_size;
+                    fwrite(&data, sizeof(int32_t), 1, f); // data size
+                    fwrite(smusic1, sizeof(short), 2*nblocks1*block_size, f); // data
                     fclose(f);
                     
                     EnableWindow(hPlayPauseButton, TRUE);
                     EnableWindow(generateButton, FALSE);
                     
                     hWaveOut = 0;
-                    int n_bits_per_sample = 16;
+                    
                     WAVEFORMATEX wfx = { WAVE_FORMAT_PCM, channels, sample_rate, sample_rate*channels*n_bits_per_sample / 8, channels*n_bits_per_sample / 8, n_bits_per_sample, 0 };
                     waveOutOpen(&hWaveOut, WAVE_MAPPER, &wfx, 0, 0, CALLBACK_NULL);
                     header.lpData = smusic1;
