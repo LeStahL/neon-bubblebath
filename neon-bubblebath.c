@@ -21,7 +21,7 @@
 #include "GL/GL.h"
 #include "glext.h"
 
-#define DEBUG
+// #define DEBUG
 
 PFNGLCREATESHADERPROC glCreateShader;
 PFNGLCREATEPROGRAMPROC glCreateProgram;
@@ -187,38 +187,6 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     block_size = texs * texs;
                     break;
                 case 6: // Generate button
-//                     // Display demo window
-//                     CHAR WindowClass[]  = "Team210 Render Window";
-// 
-//                     WNDCLASSEX wc = { 0 };
-//                     wc.cbSize = sizeof(wc);
-//                     wc.style = CS_OWNDC | CS_VREDRAW | CS_HREDRAW;
-//                     wc.lpfnWndProc = &DefWindowProc;
-//                     wc.cbClsExtra = 0;
-//                     wc.cbWndExtra = 0;
-//                     wc.hInstance = hInstance;
-//                     wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);
-//                     wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-//                     wc.hbrBackground = NULL;
-//                     wc.lpszMenuName = NULL;
-//                     wc.lpszClassName = WindowClass;
-//                     wc.hIconSm = NULL;
-// 
-//                     RegisterClassEx(&wc);
-//                     
-//                     HWND rwnd = CreateWindowEx(0, WindowClass, "render window", WS_OVERLAPPEDWINDOW, 200, 200, 341, 150, NULL, NULL, hInstance, 0);
-//                     
-//                     ShowWindow(rwnd, FALSE);
-//                     UpdateWindow(rwnd);
-//                     
-//                     HDC hdc = GetDC(rwnd);
-// 
-//                     int  pf = ChoosePixelFormat(hdc, &pfd);
-//                     SetPixelFormat(hdc, pf, &pfd);
-// 
-//                     HGLRC glrc = wglCreateContext(hdc);
-//                     wglMakeCurrent(hdc, glrc);
-                    
                     glGenTextures(1, &sequence_texture_handle);
                     glBindTexture(GL_TEXTURE_2D, sequence_texture_handle);
                     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -278,7 +246,6 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     {
                         glViewport(0, 0, texs, texs);
                         
-//                         printf("Rendering SFX block %d/%d -> %le\n", music_block, nblocks1, .5*(float)music_block / (float)nblocks1);
                         double tstart = (double)(music_block*block_size);
 
                         glUniform1f(sfx_volumelocation, 1.);
@@ -298,8 +265,6 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                         glVertex3f(1,-1,0);
                         glEnd();
                         
-//                         SwapBuffers(hdc);
-
                         glReadPixels(0, 0, texs, texs, GL_RGBA, GL_UNSIGNED_BYTE, smusic1 + music_block * block_size);
                         glFlush();
 
@@ -313,7 +278,6 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     }
                     
                     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//                     RedrawWindow(hwnd, NULL, NULL, RDW_INTERNALPAINT);
                     
                     FILE *f = fopen("music.raw", "wb");
                     fwrite(smusic1, sizeof(short), 2*nblocks1*block_size, f);
@@ -359,10 +323,12 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 int WINAPI demo(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, int nCmdShow)
 {
+#ifdef DEBUG
     AllocConsole();
 	freopen("CONIN$", "r", stdin);
 	freopen("CONOUT$", "w", stdout);
 	freopen("CONOUT$", "w", stderr);
+#endif
     
     // Display demo window
 	CHAR WindowClass[]  = "Team210 Demo Window";
