@@ -28,7 +28,7 @@ get_windowssdk_include_dirs(${WINDOWSSDK_LATEST_DIR} WINDOWS_INCLUDE)
 string(REPLACE ";" "\" /I\"" WINDOWS_INCLUDE "${WINDOWS_INCLUDE}")
 
 find_program(CRINKLER NAMES crinkler.exe PATHS "${PROJECT_SOURCE_DIR}/bin")
-
+# find_program(SHADER_MINIFIER NAMES shader_minifier.exe PATHS "${PROJECT_SOURCE_DIR}/bin")
 get_filename_component(STDC_INCLUDE "${CMAKE_C_COMPILER}" DIRECTORY)
 set(STDC_INCLUDE "${STDC_INCLUDE}/../../../include")
 

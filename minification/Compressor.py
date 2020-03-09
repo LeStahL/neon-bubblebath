@@ -24,16 +24,23 @@ def compress(source):
     ids = []
     define = False
     while token != None:
+        #print(token.tokenName)
+        #if token.tokenName == "SEMICOLON":
+            #newcode += '\n'
+        if token.tokenName == "CRLF":
+            newcode += '\n'
         if token.tokenName == "DEFINE_DIRECTIVE":
             newcode += '\n'
-        if token.tokenName == "BACKSLASH":
-            newcode += ''
+        #if token.tokenName == "BACKSLASH":
+            #newcode += ''
         if token.tokenName == "ENFORCED_CRLF":
             newcode += '\n'
-        if token.tokenName == "IDENTIFIER" : ids += [token.tokenData]
+        #if token.tokenName == "IDENTIFIER" : ids += [token.tokenData]
         if (token.tokenName != "SINGLELINE_COMMENT") and (token.tokenName != "MULTILINE_COMMENT") and (token.tokenName != "ENFORCED_CRLF"):
             newcode += token.tokenData
         if token.tokenName in [ "VOID", "FLOAT", "VEC2", "VEC3", "VEC4", "MAT2", "MAT3", "MAT4", "SAMPLER2D", "UNIFORM", "IN_QUALIFIER", "OUT_QUALIFIER", "INOUT_QUALIFIER", "VOID", "VERSION_DIRECTIVE", "DEFINE_DIRECTIVE", "CONST", "INT", "ELSE", "RETURN" ]:
             newcode += " "
+        #if token.tokenName == "IDENTIFIER":
+            #newcode += ' '
         token = lexer.token()
     return newcode
