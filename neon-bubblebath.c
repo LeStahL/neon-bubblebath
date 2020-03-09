@@ -148,7 +148,8 @@ int generated = 0,
     sfx_volumelocation,
     sfx_texs_location,
     sfx_sequence_texture_location,
-    sfx_sequence_width_location;
+    sfx_sequence_width_location,
+    paused = 1;
 float duration1 = 188.,
     *smusic1;
 HWND hPrecalcLoadingBar,
@@ -321,9 +322,6 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     EnableWindow(hPlayPauseButton, TRUE);
                     EnableWindow(generateButton, FALSE);
                     
-                    break;
-                    
-                case 8:
                     hWaveOut = 0;
                     int n_bits_per_sample = 16;
                     WAVEFORMATEX wfx = { WAVE_FORMAT_PCM, channels, sample_rate, sample_rate*channels*n_bits_per_sample / 8, channels*n_bits_per_sample / 8, n_bits_per_sample, 0 };
@@ -332,6 +330,22 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
                     header.dwBufferLength = 4 * (music1_size);
                     waveOutPrepareHeader(hWaveOut, &header, sizeof(WAVEHDR));
                     waveOutWrite(hWaveOut, &header, sizeof(WAVEHDR));
+                    waveOutPause(hWaveOut);
+                    
+                    break;
+                    
+                case 8:
+                    if(paused)
+                    {
+                        waveOutRestart(hWaveOut);
+                        SetWindowText(hPlayPauseButton, "Pause");
+                    }
+                    else
+                    {
+                        waveOutPause(hWaveOut);
+                        SetWindowText(hPlayPauseButton, "Play");
+                    }
+                    paused = !paused;
                     break;
             }
             break;
@@ -392,8 +406,11 @@ int WINAPI demo(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, in
     hPrecalcLoadingBar = CreateWindowEx(0, PROGRESS_CLASS, (LPTSTR) NULL, WS_CHILD | WS_VISIBLE, 120, 36, 196, 25, hwnd, (HMENU) 7, hInstance, NULL);
     
     // Add a player trackbar
-    HWND hTrackbar = CreateWindowEx(0,TRACKBAR_CLASS,"Music Trackbar",WS_CHILD | WS_VISIBLE | TBS_AUTOTICKS | TBS_ENABLESELRANGE, 111, 63, 213, 40, hwnd, (HMENU) 8, hInstance,NULL); 
+    HWND hTrackbar = CreateWindowEx(0,TRACKBAR_CLASS,"Music Trackbar",WS_CHILD | WS_VISIBLE, 111, 63, 213, 40, hwnd, (HMENU) 8, hInstance,NULL); 
     EnableWindow(hTrackbar, generated);
+    SendMessage(hTrackbar, TBM_SETRANGE, 
+        (WPARAM) TRUE,
+        (LPARAM) MAKELONG(0, duration1));
     
     // Add Play button
     hPlayPauseButton = CreateWindow(WC_BUTTON,"Play",WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,10,65,100,25,hwnd,(HMENU)8,hInstance,NULL);
@@ -430,12 +447,26 @@ int WINAPI demo(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine, in
     glGetProgramiv = (PFNGLGETPROGRAMIVPROC) wglGetProcAddress("glGetProgramiv");
     glGetProgramInfoLog = (PFNGLGETPROGRAMINFOLOGPROC) wglGetProcAddress("glGetProgramInfoLog");
 #endif
-
+    
+    // Set timer for continuous progress bar update
+    SetTimer(hwnd, 1337, 60, (TIMERPROC) NULL);
+    
 	MSG msg = { 0 };
 	while(GetMessage(&msg, NULL, 0, 0) > 0)
 	{
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
+        
+        if(!paused)
+        {
+            static MMTIME MMTime = { TIME_SAMPLES, 0};
+            waveOutGetPosition(hWaveOut, &MMTime, sizeof(MMTIME));
+            double time = 0 + ((double)MMTime.u.sample) / sample_rate;
+            
+            SendMessage(hTrackbar, TBM_SETPOS, 
+                (WPARAM) TRUE,                   // redraw flag 
+                (LPARAM) time); 
+        }
 	}
     
     return 0;
